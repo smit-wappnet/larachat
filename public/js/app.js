@@ -2061,6 +2061,58 @@ module.exports = {
 /***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
 
 __webpack_require__(/*! ./bootstrap */ "./resources/js/bootstrap.js");
+var chat = document.getElementById('chat-messages');
+var chat_user = 0;
+function render_sended(msg) {
+  return "\n    <div class=\"chat-message-right pb-4\">\n        <div>\n            <img src=\"https://bootdey.com/img/Content/avatar/avatar1.png\"\n                class=\"rounded-circle mr-1\" alt=\"Chris Wood\" width=\"40\" height=\"40\">\n            <div class=\"text-muted small text-nowrap mt-2\">2:33 am</div>\n        </div>\n        <div class=\"flex-shrink-1 bg-light rounded py-2 px-3 mr-3\">\n            <div class=\"font-weight-bold mb-1\">You</div>\n            ".concat(msg['message'], "\n        </div>\n    </div>\n    ");
+}
+function render_recived(msg) {
+  return "\n    <div class=\"chat-message-left pb-4\">\n        <div>\n            <img src=\"https://bootdey.com/img/Content/avatar/avatar3.png\"\n                class=\"rounded-circle mr-1\" alt=\"Sharon Lessman\" width=\"40\"\n                height=\"40\">\n            <div class=\"text-muted small text-nowrap mt-2\">2:34 am</div>\n        </div>\n        <div class=\"flex-shrink-1 bg-light rounded py-2 px-3 ml-3\">\n            <div class=\"font-weight-bold mb-1\">User</div>\n            ".concat(msg['message'], "\n        </div>\n    </div>\n    ");
+}
+function append_message(msg) {
+  if (msg['mfrom'] == me) {
+    chat.innerHTML += render_sended(msg);
+  } else {
+    chat.innerHTML += render_recived(msg);
+  }
+}
+function message_recived(msg) {
+  console.log("mesage_received");
+  console.log(msg['mfrom'] == chat_user);
+  if (msg['mfrom'] == me) {
+    if (msg["mto"] == chat_user) {
+      append_message(msg);
+    }
+  } else {
+    if (msg['mfrom'] == chat_user) {
+      append_message(msg);
+    }
+  }
+}
+$(document).ready(function () {
+  $(".users").click(function () {
+    var uid = $(this).data("user");
+    $.get("/user/" + uid, function (data, status) {
+      chat_user = data.user.id;
+      $("#chat_user").html(data.user.name);
+    });
+  });
+  $("#msg_send").click(function () {
+    var msg = $("#msg").val();
+    $.post("/send", {
+      id: chat_user,
+      message: msg
+    }, function (data) {
+      console.log(data);
+      message_recived(data);
+    });
+  });
+});
+window.Echo["private"](chanal).listen(".message", function (e) {
+  console.log(e);
+  message_recived(e['message']);
+});
+console.log(window.Echo["private"](chanal));
 
 /***/ }),
 
@@ -2108,8 +2160,8 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 window.Pusher = (pusher_js__WEBPACK_IMPORTED_MODULE_1___default());
 window.Echo = new laravel_echo__WEBPACK_IMPORTED_MODULE_0__["default"]({
   broadcaster: 'pusher',
-  key: /* unsupported import.meta.env.VITE_PUSHER_APP_KEY */ undefined.VITE_PUSHER_APP_KEY,
-  cluster: /* unsupported import.meta.env.VITE_PUSHER_APP_CLUSTER */ undefined.VITE_PUSHER_APP_CLUSTER,
+  key: "a6e4a3a5542c4b634165",
+  cluster: "mt1",
   forceTLS: true
 });
 

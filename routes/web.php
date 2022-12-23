@@ -1,6 +1,14 @@
 <?php
 
+use App\Models\Message;
+use App\Events\SendMessage;
+use App\Http\Controllers\AuthController;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -13,6 +21,42 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
+
+// Guest User
+Route::get('/home', [AuthController::class, 'signin_view'])->middleware('guest')->name("welcome");
+Route::get('/', [AuthController::class, 'signin_view'])->middleware('guest')->name("welcome");
+
+
+Route::get('/signin', [AuthController::class, 'signin_view'])->middleware('guest')->name("auth.signin");
+Route::post('/signin', [AuthController::class, 'signin'])->middleware('guest');
+
+Route::get('/signup', [AuthController::class, 'signup_view'])->middleware('guest')->name("auth.signup");
+Route::post('/signup', [AuthController::class, 'signup'])->middleware('guest');
+
+Route::get('/forgot-password', [AuthController::class, 'forgot_password_view'])->middleware('guest')->name('auth.forgot-password');
+Route::post('/forgot-password', [AuthController::class, 'forgot_password'])->middleware('guest');
+
+Route::get('/reset-password/{token}', [AuthController::class, 'reset_password_view'])->middleware('guest')->name('password.reset');
+Route::post('/reset-password/{token}', [AuthController::class, 'reset_password'])->middleware('guest')->name("auth.reset-password");
+
+
+Route::get('/dashboard', [AuthController::class, 'dashboard'])->name("dashboard")->middleware('auth');
+
+Route::post('/send', function (Request $request) {
+
+    $message = new Message();
+    $user = Auth::user();
+    $message->mfrom = $user->id;
+    $message->mto = $request->id;
+    $message->message = $request->message;
+    $message->save();
+    event(
+        new SendMessage($message)
+    );
+    return $message;
+});
+
+
+Route::get('/user/{user}', function (User $user) {
+    return ["user" => $user, "messages" => []];
 });
