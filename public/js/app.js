@@ -2063,23 +2063,23 @@ module.exports = {
 __webpack_require__(/*! ./bootstrap */ "./resources/js/bootstrap.js");
 var chat = document.getElementById('chat-messages');
 var chat_user = 0;
+var message_send_id = 0;
 function render_sended(msg) {
-  return "\n    <div class=\"chat-message-right pb-4\">\n        <div>\n            <img src=\"https://bootdey.com/img/Content/avatar/avatar1.png\"\n                class=\"rounded-circle mr-1\" alt=\"Chris Wood\" width=\"40\" height=\"40\">\n            <div class=\"text-muted small text-nowrap mt-2\">2:33 am</div>\n        </div>\n        <div class=\"flex-shrink-1 bg-light rounded py-2 px-3 mr-3\">\n            <div class=\"font-weight-bold mb-1\">You</div>\n            ".concat(msg['message'], "\n        </div>\n    </div>\n    ");
+  return "\n    <div class=\"chat-message-right pb-4\" id=\"".concat(msg['tid'], "\">\n        <div>\n            <img src=\"https://bootdey.com/img/Content/avatar/avatar1.png\"\n                class=\"rounded-circle mr-1\" alt=\"Chris Wood\" width=\"40\" height=\"40\">\n            <div class=\"text-muted small text-nowrap mt-2\">2:33 am</div>\n        </div>\n        <div class=\"flex-shrink-1 bg-light rounded py-2 px-3 mr-3\">\n            <div class=\"font-weight-bold mb-1\">You</div>\n            ").concat(msg['message'], "\n        </div>\n        <div class='d-flex align-items-end p-2'>\n            <i class=\"bi bi-check ").concat(msg['tid'] ? 'text-warning' : 'text-success', " status_check\"></i>\n        </div>\n    </div>\n    ");
 }
 function render_recived(msg) {
-  return "\n    <div class=\"chat-message-left pb-4\">\n        <div>\n            <img src=\"https://bootdey.com/img/Content/avatar/avatar3.png\"\n                class=\"rounded-circle mr-1\" alt=\"Sharon Lessman\" width=\"40\"\n                height=\"40\">\n            <div class=\"text-muted small text-nowrap mt-2\">2:34 am</div>\n        </div>\n        <div class=\"flex-shrink-1 bg-light rounded py-2 px-3 ml-3\">\n            <div class=\"font-weight-bold mb-1\">User</div>\n            ".concat(msg['message'], "\n        </div>\n    </div>\n    ");
+  return "\n        <div class=\"chat-message-left pb-4\">\n            <div>\n                <img src=\"https://bootdey.com/img/Content/avatar/avatar3.png\"\n                    class=\"rounded-circle mr-1\" alt=\"Sharon Lessman\" width=\"40\"\n                    height=\"40\">\n                <div class=\"text-muted small text-nowrap mt-2\">2:34 am</div>\n            </div>\n            <div class=\"flex-shrink-1 bg-light rounded py-2 px-3 ml-3\">\n                <div class=\"font-weight-bold mb-1\">User</div>\n                ".concat(msg['message'], "\n            </div>\n        </div>\n    ");
 }
 function append_message(msg) {
-  if (msg['mfrom'] == me) {
+  if (msg['mfrom'] == me || msg['tid'] !== undefined) {
     chat.innerHTML += render_sended(msg);
   } else {
     chat.innerHTML += render_recived(msg);
   }
 }
 function message_recived(msg) {
-  console.log("mesage_received");
-  console.log(msg['mfrom'] == chat_user);
-  if (msg['mfrom'] == me) {
+  if (msg['mfrom'] == me || msg['tid'] !== undefined) {
+    console.log("Sended msg");
     if (msg["mto"] == chat_user) {
       append_message(msg);
     }
@@ -2090,21 +2090,54 @@ function message_recived(msg) {
   }
 }
 $(document).ready(function () {
+  var uid = $(".users").first().data("user");
+  $.get("/user/" + uid, function (data, status) {
+    chat_user = data.user.id;
+    $("#chat-messages").html("");
+    $("#chat_user").html(data.user.name);
+    data.messages.forEach(function (message) {
+      console.log(message);
+      append_message(message);
+    });
+  });
   $(".users").click(function () {
     var uid = $(this).data("user");
+    $("#chat-messages").html("");
     $.get("/user/" + uid, function (data, status) {
       chat_user = data.user.id;
       $("#chat_user").html(data.user.name);
+      data.messages.forEach(function (message) {
+        console.log(message);
+      });
     });
   });
   $("#msg_send").click(function () {
+    if (chat_user == 0) {
+      alert("Select Any User to Chat");
+      return;
+    }
     var msg = $("#msg").val();
-    $.post("/send", {
-      id: chat_user,
-      message: msg
-    }, function (data) {
-      console.log(data);
-      message_recived(data);
+    var post_data = {
+      mto: chat_user,
+      message: msg,
+      tid: 'tid_' + message_send_id
+    };
+    message_send_id += 1;
+    $.ajax({
+      url: '/send',
+      method: 'POST',
+      data: post_data,
+      beforeSend: function beforeSend() {
+        message_recived(post_data);
+      },
+      success: function success(data) {
+        var tid = data['tid'];
+        $("#" + tid).attr("id", "msg_" + data['id']);
+        $("#msg_" + data['id']).find(".status_check").removeClass('text-warning').addClass('text-success');
+      },
+      error: function error() {
+        $("#" + tid).find(".status_check").removeClass('text-warning').addClass('text-success');
+      }
     });
   });
 });

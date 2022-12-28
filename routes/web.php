@@ -47,16 +47,21 @@ Route::post('/send', function (Request $request) {
     $message = new Message();
     $user = Auth::user();
     $message->mfrom = $user->id;
-    $message->mto = $request->id;
+    $message->mto = $request->mto;
     $message->message = $request->message;
     $message->save();
     event(
         new SendMessage($message)
     );
-    return $message;
+    $arr = $message->toArray();
+    $arr['tid'] = $request->tid;
+    return $arr;
 });
 
 
 Route::get('/user/{user}', function (User $user) {
-    return ["user" => $user, "messages" => []];
+    $uid = Auth::user()->id;
+    $cid = $user->id;
+    $messages = Message::where('mfrom', $uid)->where('mto', $cid)->orWhere('mfrom', $cid)->where('mto', $uid)->get();
+    return ["user" => $user, "messages" => $messages];
 });
